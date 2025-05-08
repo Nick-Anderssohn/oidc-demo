@@ -1,0 +1,12 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "query.sql"
+    schema: "schema.sql"
+    database:
+      uri: "postgresql://demo:demo@localhost:5432/demo"
+    gen:
+      go:
+        package: "dal"
+        out: "dal"
+        sql_package: "pgx/v5"
