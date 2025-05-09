@@ -89,6 +89,14 @@ db_stop() {
     fi
 }
 
+build_frontend() {
+    cd frontend/oidc-demo
+    npm run build
+    cd ../..
+    rm -rf cmd/server/static/*
+    cp -r frontend/oidc-demo/dist/* cmd/server/static/
+}
+
 case $1 in
     first_time_setup)
         first_time_setup
@@ -114,7 +122,10 @@ case $1 in
     db_stop)
         db_stop
         ;;
+    build_frontend)
+        build_frontend
+        ;;
     *)
-        echo "Usage: $0 {first_time_setup|create_sql_migration|db_migrate|sqlcgen|db_dump_schema|db_reset|db_start|db_stop}"
+        echo "Usage: $0 {first_time_setup|create_sql_migration|db_migrate|sqlcgen|db_dump_schema|db_reset|db_start|db_stop|build_frontend}"
         exit 1
 esac
