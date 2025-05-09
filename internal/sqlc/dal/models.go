@@ -8,9 +8,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type DemoIdentity struct {
+	ID                 pgtype.UUID
+	IdentityProviderID string
+	UserID             pgtype.UUID
+	ExternalID         string
+	CreatedAt          pgtype.Timestamp
+	UpdatedAt          pgtype.Timestamp
+}
+
+type DemoIdentityProvider struct {
+	ID        string
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
+}
+
 type DemoUser struct {
 	ID        pgtype.UUID
-	Username  string
 	Email     string
 	CreatedAt pgtype.Timestamp
 	UpdatedAt pgtype.Timestamp

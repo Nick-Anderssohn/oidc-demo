@@ -2,9 +2,8 @@
 -- +goose StatementBegin
 create table demo."user" (
     id uuid default uuid_generate_v4() primary key,
-    username text not null unique,
     email text not null unique,
-
+    
     created_at timestamp default now(),
     updated_at timestamp default now()
 );

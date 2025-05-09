@@ -12,7 +12,7 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-select id, username, email, created_at, updated_at
+select id, email, created_at, updated_at
 from demo."user"
 where id = $1
 `
@@ -22,7 +22,6 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (DemoUser, error)
 	var i DemoUser
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
 		&i.Email,
 		&i.CreatedAt,
 		&i.UpdatedAt,
