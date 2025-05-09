@@ -26,3 +26,6 @@ go.work.sum
 
 # output from ./oidc.sh db_dump_schema
 db/schema.sql
+
+# frontend build output
+cmd/server/static
