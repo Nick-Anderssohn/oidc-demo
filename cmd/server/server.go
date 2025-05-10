@@ -30,31 +30,16 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 
+	// Serve static files
 	router.Handle("/*", http.FileServer(http.Dir("./static")))
 
-	googleHandlers := google.Handlers{
-		DepResolver: &resolver,
-	}
+	registerAuthEndpoints(router, &resolver)
 
-	router.Get("/login/google", googleHandlers.RedirectToAuthorizationServer)
-
-	router.Route("/api", func(r chi.Router) {
+	// Routes under /private/api require the user to be authenticated
+	router.Route("/private/api", func(r chi.Router) {
 		r.Use(contentTypeJsonMiddleware)
 
-		r.Get("/hello", func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(Message{Text: "Welcome to the API!"})
-		})
-
-		r.Route("/google", func(r chi.Router) {
-			r.Get("/discovery", google.GetDiscoveryData)
-		})
-	})
-
-	router.Route("/callbacks", func(r chi.Router) {
-		r.Get("/google", func(w http.ResponseWriter, r *http.Request) {
-			// Handle Google callback here
-			json.NewEncoder(w).Encode(Message{Text: "Google callback received!"})
-		})
+		// TODO: Get identities.
 	})
 
 	log.Println("Server is running on http://localhost:8080")
@@ -67,5 +52,23 @@ func contentTypeJsonMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
+	})
+}
+
+func registerAuthEndpoints(router *chi.Mux, resolver *deps.Resolver) {
+	googleHandlers := google.Handlers{
+		DepResolver: resolver,
+	}
+
+	// Login redirects
+	router.Route("/login", func(r chi.Router) {
+		r.Get("/google", googleHandlers.RedirectToAuthorizationServer)
+	})
+
+	router.Route("/callbacks", func(r chi.Router) {
+		r.Get("/google", func(w http.ResponseWriter, r *http.Request) {
+			// Handle Google callback here
+			json.NewEncoder(w).Encode(Message{Text: "Google callback received!"})
+		})
 	})
 }

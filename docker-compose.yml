@@ -15,7 +15,6 @@ services:
       dockerfile: api.Dockerfile
     container_name: api
     environment:
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     ports:
       - "8080:8080"

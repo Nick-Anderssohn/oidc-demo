@@ -123,8 +123,8 @@ case $1 in
         create_sql_migration $2
         ;;
     db_migrate)
-        db_migrate
-        ;;
+        db_migrate 
+        ;; 
     sqlcgen)
         sqlcgen
         ;;

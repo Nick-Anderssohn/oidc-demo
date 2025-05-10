@@ -3,6 +3,7 @@ package deps
 import (
 	"context"
 
+	"github.com/Nick-Anderssohn/oidc-demo/internal/config"
 	"github.com/Nick-Anderssohn/oidc-demo/internal/sqlc/dal"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -10,19 +11,26 @@ import (
 type Resolver struct {
 	DBPool  *pgxpool.Pool
 	Queries *dal.Queries
+	Config  *config.Config
 }
 
 func InitDepsResolver(ctx context.Context) (Resolver, error) {
-	// assumes you are running via docker-compose
-	// obviously you would want this to be configurable in real life.
-	dbPool, err := pgxpool.New(ctx, "postgres://demo:demo@db:5432/demo")
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		return Resolver{}, err
 	}
 
+	dbPool, err := pgxpool.New(ctx, cfg.PostgresConfig.ConnectionString())
+	if err != nil {
+		return Resolver{}, err
+	}
+
+	queries := dal.New(dbPool)
+
 	return Resolver{
 		DBPool:  dbPool,
-		Queries: dal.New(dbPool),
+		Queries: queries,
+		Config:  &cfg,
 	}, nil
 }
 

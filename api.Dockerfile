@@ -29,6 +29,10 @@ COPY --from=builder /app/server .
 # Copy the static files to serve
 COPY --from=builder /app/cmd/server/static /static
 
+# Copy env files
+COPY --from=builder /app/cmd/server/.env ./.env
+COPY --from=builder /app/cmd/server/.env.development ./.env.development
+
 # Expose the application port
 EXPOSE 8080
 
