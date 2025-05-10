@@ -93,7 +93,8 @@ build_frontend() {
     cd frontend/oidc-demo
     npm run build
     cd ../..
-    rm -rf cmd/server/static/*
+    rm -rf cmd/server/static
+    mkdir cmd/server/static
     cp -r frontend/oidc-demo/dist/* cmd/server/static/
 }
 
