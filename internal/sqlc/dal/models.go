@@ -23,6 +23,12 @@ type DemoIdentityProvider struct {
 	UpdatedAt pgtype.Timestamp
 }
 
+type DemoStateToken struct {
+	Token     string
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 type DemoUser struct {
 	ID        pgtype.UUID
 	Email     string

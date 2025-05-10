@@ -29,3 +29,9 @@ CREATE TABLE demo.identity (
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now()
 );
+
+CREATE TABLE demo.state_token (
+    token text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);

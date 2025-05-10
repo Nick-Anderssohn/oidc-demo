@@ -97,6 +97,12 @@ build_frontend() {
     cp -r frontend/oidc-demo/dist/* cmd/server/static/
 }
 
+run_api() {
+    build_frontend
+
+    docker compose up --build api
+}
+
 case $1 in
     first_time_setup)
         first_time_setup
@@ -125,7 +131,10 @@ case $1 in
     build_frontend)
         build_frontend
         ;;
+    run_api)
+        run_api
+        ;;
     *)
-        echo "Usage: $0 {first_time_setup|create_sql_migration|db_migrate|sqlcgen|db_dump_schema|db_reset|db_start|db_stop|build_frontend}"
+        echo "Usage: $0 {first_time_setup|create_sql_migration|db_migrate|sqlcgen|db_dump_schema|db_reset|db_start|db_stop|build_frontend|run_api}"
         exit 1
 esac

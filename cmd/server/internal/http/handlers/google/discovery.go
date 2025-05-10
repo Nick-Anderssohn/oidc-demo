@@ -24,3 +24,7 @@ func GetDiscoveryData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func getGoogleDiscoveryData() (*oidc.DiscoveryData, error) {
+	return oidc.GetDiscoveryData(googleDiscoveryURL)
+}

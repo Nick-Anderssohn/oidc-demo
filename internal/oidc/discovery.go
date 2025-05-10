@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// DiscoveryData is referred to as "OpenID Provider Metadata" in the official
+// specification: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 type DiscoveryData struct {
 	Issuer                                     string   `json:"issuer"`
 	AuthorizationEndpoint                      string   `json:"authorization_endpoint"`

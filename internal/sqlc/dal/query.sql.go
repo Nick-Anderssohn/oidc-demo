@@ -11,6 +11,29 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteStateToken = `-- name: DeleteStateToken :exec
+delete from demo.state_token
+where token = $1
+`
+
+func (q *Queries) DeleteStateToken(ctx context.Context, token string) error {
+	_, err := q.db.Exec(ctx, deleteStateToken, token)
+	return err
+}
+
+const getStateToken = `-- name: GetStateToken :one
+select token, created_at, updated_at
+from demo.state_token
+where token = $1
+`
+
+func (q *Queries) GetStateToken(ctx context.Context, token string) (DemoStateToken, error) {
+	row := q.db.QueryRow(ctx, getStateToken, token)
+	var i DemoStateToken
+	err := row.Scan(&i.Token, &i.CreatedAt, &i.UpdatedAt)
+	return i, err
+}
+
 const getUser = `-- name: GetUser :one
 select id, email, created_at, updated_at
 from demo."user"
@@ -27,4 +50,14 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (DemoUser, error)
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const insertStateToken = `-- name: InsertStateToken :exec
+insert into demo.state_token (token)
+values ($1)
+`
+
+func (q *Queries) InsertStateToken(ctx context.Context, token string) error {
+	_, err := q.db.Exec(ctx, insertStateToken, token)
+	return err
 }
