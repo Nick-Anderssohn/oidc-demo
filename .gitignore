@@ -21,9 +21,6 @@
 go.work
 go.work.sum
 
-# env file
-.env
-
 # output from ./oidc.sh db_dump_schema
 db/schema.sql
 

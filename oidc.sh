@@ -37,7 +37,7 @@ db_migrate() {
     echo "Running database migrations..."
     cd db/goose
     goose up
-    cd ../../..
+    cd ../..
 }
 
 sqlcgen() {
@@ -104,6 +104,17 @@ run_api() {
     docker compose up --build api
 }
 
+run() {
+    db_start
+
+    # Wait a few seconds for the database to start
+    echo "Waiting for the database to start..."
+    sleep 3
+
+    db_migrate
+    run_api
+}
+
 case $1 in
     first_time_setup)
         first_time_setup
@@ -135,7 +146,10 @@ case $1 in
     run_api)
         run_api
         ;;
+    run)
+        run
+        ;;
     *)
-        echo "Usage: $0 {first_time_setup|create_sql_migration|db_migrate|sqlcgen|db_dump_schema|db_reset|db_start|db_stop|build_frontend|run_api}"
+        echo "Usage: $0 {first_time_setup|create_sql_migration|db_migrate|sqlcgen|db_dump_schema|db_reset|db_start|db_stop|build_frontend|run_api|run}"
         exit 1
 esac
