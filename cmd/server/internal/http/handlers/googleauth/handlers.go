@@ -31,9 +31,6 @@ func (h *Handlers) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		w,
 		r,
 	)
-
-	// Redirect back to home page.
-	http.Redirect(w, r, h.DepResolver.Config.APIConfig.BaseURL+"/", http.StatusFound)
 }
 
 func createGoogleOIDCConfig(depResolver *deps.Resolver) helpers.OIDCConfig {

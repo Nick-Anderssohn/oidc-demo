@@ -13,6 +13,7 @@ type DemoIdentity struct {
 	IdentityProviderID string
 	UserID             pgtype.UUID
 	ExternalID         string
+	MostRecentIDToken  []byte
 	CreatedAt          pgtype.Timestamp
 	UpdatedAt          pgtype.Timestamp
 }
@@ -27,6 +28,13 @@ type DemoNonce struct {
 	Nonce     string
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz
+}
+
+type DemoSession struct {
+	ID        string
+	UserID    pgtype.UUID
+	CreatedAt pgtype.Timestamp
+	UpdatedAt pgtype.Timestamp
 }
 
 type DemoStateToken struct {

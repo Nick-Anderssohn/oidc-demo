@@ -19,6 +19,7 @@ create table demo.identity (
     identity_provider_id text not null references demo.identity_provider(id) on delete cascade,
     user_id uuid not null references demo."user"(id) on delete cascade,
     external_id text not null,
+    most_recent_id_token jsonb,
     created_at timestamp default now(),
     updated_at timestamp default now(),
     unique (identity_provider_id, external_id),

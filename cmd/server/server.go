@@ -5,8 +5,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Nick-Anderssohn/oidc-demo/cmd/server/internal/http/handlers/api"
 	"github.com/Nick-Anderssohn/oidc-demo/cmd/server/internal/http/handlers/googleauth"
 	"github.com/Nick-Anderssohn/oidc-demo/internal/deps"
+	"github.com/Nick-Anderssohn/oidc-demo/internal/session"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
@@ -27,7 +29,11 @@ func main() {
 	defer resolver.Close()
 
 	router := chi.NewRouter()
+
 	router.Use(middleware.Logger)
+
+	sessionSVC := session.Service{Resolver: &resolver}
+	router.Use(sessionSVC.SessionMiddleware)
 
 	// Serve static files
 	router.Handle("/*", http.FileServer(http.Dir("./static")))
@@ -36,9 +42,13 @@ func main() {
 
 	// Routes under /private/api require the user to be authenticated
 	router.Route("/private/api", func(r chi.Router) {
+		r.Use(sessionSVC.RequireSessionMiddleware)
 		r.Use(contentTypeJsonMiddleware)
 
-		// TODO: Get identities.
+		handlers := api.Handlers{
+			DepResolver: &resolver,
+		}
+		r.Get("/me", handlers.Me)
 	})
 
 	log.Println("Server is running on http://localhost:8080")

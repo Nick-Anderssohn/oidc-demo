@@ -11,6 +11,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteSession = `-- name: DeleteSession :exec
+delete from demo.session
+where id = $1
+`
+
+func (q *Queries) DeleteSession(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteSession, id)
+	return err
+}
+
 const deleteStateToken = `-- name: DeleteStateToken :exec
 delete from demo.state_token
 where token = $1
@@ -19,6 +29,24 @@ where token = $1
 func (q *Queries) DeleteStateToken(ctx context.Context, token string) error {
 	_, err := q.db.Exec(ctx, deleteStateToken, token)
 	return err
+}
+
+const getSession = `-- name: GetSession :one
+select id, user_id, created_at, updated_at
+from demo.session
+where id = $1
+`
+
+func (q *Queries) GetSession(ctx context.Context, id string) (DemoSession, error) {
+	row := q.db.QueryRow(ctx, getSession, id)
+	var i DemoSession
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getStateToken = `-- name: GetStateToken :one
@@ -52,6 +80,51 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (DemoUser, error)
 	return i, err
 }
 
+const getUserData = `-- name: GetUserData :many
+select "user".email as user_email,
+        identity.id as identity_id,
+        identity.identity_provider_id as identity_provider_id,
+        identity.external_id as external_id,
+        identity.most_recent_id_token as most_recent_id_token
+from demo."user"
+left join demo.identity identity on identity.user_id = "user".id
+where "user".id = $1
+`
+
+type GetUserDataRow struct {
+	UserEmail          string
+	IdentityID         pgtype.UUID
+	IdentityProviderID pgtype.Text
+	ExternalID         pgtype.Text
+	MostRecentIDToken  []byte
+}
+
+func (q *Queries) GetUserData(ctx context.Context, id pgtype.UUID) ([]GetUserDataRow, error) {
+	rows, err := q.db.Query(ctx, getUserData, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserDataRow
+	for rows.Next() {
+		var i GetUserDataRow
+		if err := rows.Scan(
+			&i.UserEmail,
+			&i.IdentityID,
+			&i.IdentityProviderID,
+			&i.ExternalID,
+			&i.MostRecentIDToken,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertNonce = `-- name: InsertNonce :exec
 insert into demo.nonce (nonce)
 values ($1)
@@ -59,6 +132,21 @@ values ($1)
 
 func (q *Queries) InsertNonce(ctx context.Context, nonce string) error {
 	_, err := q.db.Exec(ctx, insertNonce, nonce)
+	return err
+}
+
+const insertSession = `-- name: InsertSession :exec
+insert into demo.session (id, user_id)
+values ($1, $2)
+`
+
+type InsertSessionParams struct {
+	ID     string
+	UserID pgtype.UUID
+}
+
+func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) error {
+	_, err := q.db.Exec(ctx, insertSession, arg.ID, arg.UserID)
 	return err
 }
 
@@ -73,27 +161,34 @@ func (q *Queries) InsertStateToken(ctx context.Context, token string) error {
 }
 
 const upsertIdentity = `-- name: UpsertIdentity :one
-insert into demo.identity (user_id, identity_provider_id, external_id)
-values ($1, $2, $3)
+insert into demo.identity (user_id, identity_provider_id, external_id, most_recent_id_token)
+values ($1, $2, $3, $4)
 on conflict (user_id, identity_provider_id, external_id)
-do update set user_id = excluded.user_id
-returning id, identity_provider_id, user_id, external_id, created_at, updated_at
+do update set most_recent_id_token = excluded.most_recent_id_token
+returning id, identity_provider_id, user_id, external_id, most_recent_id_token, created_at, updated_at
 `
 
 type UpsertIdentityParams struct {
 	UserID             pgtype.UUID
 	IdentityProviderID string
 	ExternalID         string
+	MostRecentIDToken  []byte
 }
 
 func (q *Queries) UpsertIdentity(ctx context.Context, arg UpsertIdentityParams) (DemoIdentity, error) {
-	row := q.db.QueryRow(ctx, upsertIdentity, arg.UserID, arg.IdentityProviderID, arg.ExternalID)
+	row := q.db.QueryRow(ctx, upsertIdentity,
+		arg.UserID,
+		arg.IdentityProviderID,
+		arg.ExternalID,
+		arg.MostRecentIDToken,
+	)
 	var i DemoIdentity
 	err := row.Scan(
 		&i.ID,
 		&i.IdentityProviderID,
 		&i.UserID,
 		&i.ExternalID,
+		&i.MostRecentIDToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/Nick-Anderssohn/oidc-demo/internal/deps"
 	"github.com/Nick-Anderssohn/oidc-demo/internal/oidc"
+	"github.com/Nick-Anderssohn/oidc-demo/internal/session"
 	"github.com/Nick-Anderssohn/oidc-demo/internal/sqlc/dal"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/oauth2"
@@ -89,12 +91,21 @@ func HandleOIDCCallback(
 		return
 	}
 
-	err = upsertUserAndIdentity(depResolver, &tokenResp, r.Context())
+	user, err := upsertUserAndIdentity(depResolver, &tokenResp, r.Context())
 	if err != nil {
 		log.Printf("Failed to upsert user and identity: %v", err)
 		http.Error(w, "Failed to upsert user and identity", http.StatusInternalServerError)
 		return
 	}
+
+	sessionSVC := session.Service{Resolver: depResolver}
+	err = sessionSVC.SaveNewSessionCookie(r.Context(), user.ID, w)
+	if err != nil {
+		log.Printf("Failed to save session cookie: %v", err)
+		http.Error(w, "Failed to save session cookie", http.StatusInternalServerError)
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func validateState(
@@ -152,33 +163,39 @@ func upsertUserAndIdentity(
 	depResolver *deps.Resolver,
 	tokenResp *oidc.TokenResponse,
 	ctx context.Context,
-) error {
+) (dal.DemoUser, error) {
 	email, ok := tokenResp.IDTokenPayload["email"].(string)
 	if !ok || email == "" {
-		return fmt.Errorf("email not found in ID token payload")
+		return dal.DemoUser{}, fmt.Errorf("email not found in ID token payload")
 	}
 
 	externalId, ok := tokenResp.IDTokenPayload["sub"].(string)
 	if !ok || externalId == "" {
-		return fmt.Errorf("external ID not found in ID token payload")
+		return dal.DemoUser{}, fmt.Errorf("external ID not found in ID token payload")
 	}
 
 	// For now, we'll just upsert the user and identity.
 	queries := depResolver.Queries
 	user, err := queries.UpsertUserByEmail(ctx, tokenResp.IDTokenPayload["email"].(string))
 	if err != nil {
-		return fmt.Errorf("failed to upsert user: %v", err)
+		return dal.DemoUser{}, fmt.Errorf("failed to upsert user: %v", err)
+	}
+
+	idTokenJSON, err := json.Marshal(tokenResp.IDTokenPayload)
+	if err != nil {
+		return dal.DemoUser{}, fmt.Errorf("failed to marshal ID token payload: %v", err)
 	}
 
 	_, err = queries.UpsertIdentity(ctx, dal.UpsertIdentityParams{
 		UserID:             user.ID,
 		IdentityProviderID: dal.IdentityProviderIDGoogle,
 		ExternalID:         externalId,
+		MostRecentIDToken:  idTokenJSON,
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to upsert identity: %v", err)
+		return dal.DemoUser{}, fmt.Errorf("failed to upsert identity: %v", err)
 	}
 
-	return nil
+	return user, nil
 }

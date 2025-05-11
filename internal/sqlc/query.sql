@@ -27,8 +27,31 @@ on conflict (email) do update set email = excluded.email
 returning *;
 
 -- name: UpsertIdentity :one
-insert into demo.identity (user_id, identity_provider_id, external_id)
-values ($1, $2, $3)
+insert into demo.identity (user_id, identity_provider_id, external_id, most_recent_id_token)
+values ($1, $2, $3, $4)
 on conflict (user_id, identity_provider_id, external_id)
-do update set user_id = excluded.user_id
+do update set most_recent_id_token = excluded.most_recent_id_token
 returning *;
+
+-- name: GetSession :one
+select *
+from demo.session
+where id = $1;
+
+-- name: InsertSession :exec
+insert into demo.session (id, user_id)
+values ($1, $2);
+
+-- name: DeleteSession :exec
+delete from demo.session
+where id = $1;
+
+-- name: GetUserData :many
+select "user".email as user_email,
+        identity.id as identity_id,
+        identity.identity_provider_id as identity_provider_id,
+        identity.external_id as external_id,
+        identity.most_recent_id_token as most_recent_id_token
+from demo."user"
+left join demo.identity identity on identity.user_id = "user".id
+where "user".id = $1;
