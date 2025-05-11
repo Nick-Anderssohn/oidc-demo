@@ -80,6 +80,35 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (DemoUser, error)
 	return i, err
 }
 
+const getUserByIdentityExternalID = `-- name: GetUserByIdentityExternalID :one
+select u.id, u.email, u.created_at, u.updated_at
+from demo."user" u
+where exists (
+        select 1
+        from demo.identity i
+        where i.user_id = u.id
+          and i.identity_provider_id = $1
+          and i.external_id = $2
+)
+`
+
+type GetUserByIdentityExternalIDParams struct {
+	IdentityProviderID string
+	ExternalID         string
+}
+
+func (q *Queries) GetUserByIdentityExternalID(ctx context.Context, arg GetUserByIdentityExternalIDParams) (DemoUser, error) {
+	row := q.db.QueryRow(ctx, getUserByIdentityExternalID, arg.IdentityProviderID, arg.ExternalID)
+	var i DemoUser
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserData = `-- name: GetUserData :many
 select "user".email as user_email,
         identity.id as identity_id,

@@ -22,10 +22,8 @@ create table demo.identity (
     most_recent_id_token jsonb,
     created_at timestamp default now(),
     updated_at timestamp default now(),
-    unique (identity_provider_id, external_id),
 
-    -- for upserts:
-    unique (user_id, identity_provider_id, external_id)
+    unique (identity_provider_id, external_id, user_id)
 );
 
 create trigger identity_set_updated_at

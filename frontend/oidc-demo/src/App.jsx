@@ -27,28 +27,47 @@ function App() {
               (identity) => identity.identityProviderId === "google"
             )
 
+  const slimmedIdentities = userData && Array.isArray(userData.identities)
+    ? userData.identities.map(({ identityProviderId, externalId, mostRecentIdToken }) => ({
+        identityProviderId,
+        externalId,
+        email: mostRecentIdToken.email
+      }))
+    : [];
+
   return (
     <>
       <h1>OpenID Connect Demo</h1>
+      <p>Forgive the bad UI...I'm a backend dev</p>
       <div className="card">
         {loggedIn && <h2>Logged in! Link another account:</h2>}
         {!loggedIn && <h2>Not logged in! Please log in or create an account via:</h2>}
-        {!googleIdentityExists && (
-          <button onClick={() => window.location.href = '/login/google'}>
+        <button onClick={() => window.location.href = '/login/google'}>
             Google
-          </button>
-        )}
-        {googleIdentityExists && (
-          <p>all account types already linked, no new ones left.</p>
-        )}
+        </button>
         {userData && (
           <div className="user-info">
             <h2>User Info</h2>
-            <textarea
+            <div style={{ textAlign: 'left' }}>
+              <p><strong>User Email:</strong> {userData.email}</p>
+            </div>
+            <h2>Linked Accounts</h2>
+            <ul>
+              {slimmedIdentities.map((identity, idx) => (
+                <li key={idx}>
+                  <div style={{ textAlign: 'left' }}>
+                    <strong>Provider:</strong> {identity.identityProviderId} <br />
+                    <strong>External ID:</strong> {identity.externalId} <br />
+                    <strong>Email:</strong> {identity.email}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {/* <textarea
               readOnly
               style={{ width: '975px', height: '388px', fontFamily: 'monospace', fontSize: '1rem' }}
               value={JSON.stringify(userData, null, 2)}
-            />
+            /> */}
           </div>
         )}
         <div style={{ marginTop: '20px' }}>

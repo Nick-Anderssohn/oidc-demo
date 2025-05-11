@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -37,7 +38,11 @@ func (s *Service) SessionMiddleware(next http.Handler) http.Handler {
 
 		sessionRecord, err := s.Resolver.Queries.GetSession(r.Context(), cookie.Value)
 		if err != nil {
-			// If session is invalid, continue without session
+			// If session is invalid, delete the cookie and continue
+			http.SetCookie(w, &http.Cookie{
+				Name:   sessionCookieName,
+				MaxAge: -1, // Delete the cookie
+			})
 			return
 		}
 
@@ -83,8 +88,13 @@ func (s *Service) RequireSessionMiddleware(next http.Handler) http.Handler {
 }
 
 func UserIDFromContext(ctx context.Context) (pgtype.UUID, error) {
+	valFromCtx := ctx.Value(userIDContextKey)
+	if valFromCtx == nil {
+		return pgtype.UUID{}, fmt.Errorf("user not logged in")
+	}
+
 	var uuid pgtype.UUID
-	if err := uuid.Scan(ctx.Value(userIDContextKey)); err != nil {
+	if err := uuid.Scan(valFromCtx); err != nil {
 		return uuid, err
 	}
 	return uuid, nil
@@ -114,7 +124,7 @@ func (s *Service) SaveNewSessionCookie(ctx context.Context, userID pgtype.UUID, 
 		Name:     sessionCookieName,
 		Value:    sessionId,
 		Expires:  time.Now().Add(sessionLifetimeDays * 24 * time.Hour),
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 		Secure:   secure,
 		HttpOnly: true,

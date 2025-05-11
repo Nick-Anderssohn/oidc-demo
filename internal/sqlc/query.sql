@@ -55,3 +55,14 @@ select "user".email as user_email,
 from demo."user"
 left join demo.identity identity on identity.user_id = "user".id
 where "user".id = $1;
+
+-- name: GetUserByIdentityExternalID :one
+select u.*
+from demo."user" u
+where exists (
+        select 1
+        from demo.identity i
+        where i.user_id = u.id
+          and i.identity_provider_id = $1
+          and i.external_id = $2
+);

@@ -164,36 +164,68 @@ func upsertUserAndIdentity(
 	tokenResp *oidc.TokenResponse,
 	ctx context.Context,
 ) (dal.DemoUser, error) {
-	email, ok := tokenResp.IDTokenPayload["email"].(string)
-	if !ok || email == "" {
-		return dal.DemoUser{}, fmt.Errorf("email not found in ID token payload")
-	}
+	queries := depResolver.Queries
 
-	externalId, ok := tokenResp.IDTokenPayload["sub"].(string)
-	if !ok || externalId == "" {
+	// Extract external ID from token payload
+	externalID, ok := tokenResp.IDTokenPayload["sub"].(string)
+	if !ok || externalID == "" {
 		return dal.DemoUser{}, fmt.Errorf("external ID not found in ID token payload")
 	}
 
-	// For now, we'll just upsert the user and identity.
-	queries := depResolver.Queries
-	user, err := queries.UpsertUserByEmail(ctx, tokenResp.IDTokenPayload["email"].(string))
-	if err != nil {
-		return dal.DemoUser{}, fmt.Errorf("failed to upsert user: %v", err)
+	// Check if a user exists with the given external ID
+	user, err := queries.GetUserByIdentityExternalID(ctx, dal.GetUserByIdentityExternalIDParams{
+		IdentityProviderID: dal.IdentityProviderIDGoogle,
+		ExternalID:         externalID,
+	})
+
+	existingUserFound := err == nil
+	if err != nil && err != pgx.ErrNoRows {
+		return dal.DemoUser{}, fmt.Errorf("failed to get user by external ID: %v", err)
 	}
 
+	// Check if the user is logged in
+	loggedInUserID, err := session.UserIDFromContext(ctx)
+	userIsLoggedIn := err == nil
+
+	// If user is logged in, ensure the account is not already linked to another user
+	if userIsLoggedIn && existingUserFound && user.ID != loggedInUserID {
+		return dal.DemoUser{}, fmt.Errorf("account is already linked to another user")
+	}
+
+	// Make sure to grab the user if they are logged in via another account
+	if userIsLoggedIn && !existingUserFound {
+		user, err = queries.GetUser(ctx, loggedInUserID)
+		if err != nil {
+			return dal.DemoUser{}, fmt.Errorf("failed to get logged-in user: %v", err)
+		}
+	}
+
+	// If no existing user is found and the user is not logged in, create a new user
+	if !userIsLoggedIn && !existingUserFound {
+		email, ok := tokenResp.IDTokenPayload["email"].(string)
+		if !ok || email == "" {
+			return dal.DemoUser{}, fmt.Errorf("email not found in ID token payload")
+		}
+
+		user, err = queries.UpsertUserByEmail(ctx, email)
+		if err != nil {
+			return dal.DemoUser{}, fmt.Errorf("failed to upsert user: %v", err)
+		}
+	}
+
+	// Marshal ID token payload
 	idTokenJSON, err := json.Marshal(tokenResp.IDTokenPayload)
 	if err != nil {
 		return dal.DemoUser{}, fmt.Errorf("failed to marshal ID token payload: %v", err)
 	}
 
-	_, err = queries.UpsertIdentity(ctx, dal.UpsertIdentityParams{
+	// Upsert identity record
+	if _, err := queries.UpsertIdentity(ctx, dal.UpsertIdentityParams{
 		UserID:             user.ID,
 		IdentityProviderID: dal.IdentityProviderIDGoogle,
-		ExternalID:         externalId,
+		ExternalID:         externalID,
 		MostRecentIDToken:  idTokenJSON,
-	})
-
-	if err != nil {
+	}); err != nil {
 		return dal.DemoUser{}, fmt.Errorf("failed to upsert identity: %v", err)
 	}
 
