@@ -52,6 +52,16 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (DemoUser, error)
 	return i, err
 }
 
+const insertNonce = `-- name: InsertNonce :exec
+insert into demo.nonce (nonce)
+values ($1)
+`
+
+func (q *Queries) InsertNonce(ctx context.Context, nonce string) error {
+	_, err := q.db.Exec(ctx, insertNonce, nonce)
+	return err
+}
+
 const insertStateToken = `-- name: InsertStateToken :exec
 insert into demo.state_token (token)
 values ($1)
@@ -60,4 +70,51 @@ values ($1)
 func (q *Queries) InsertStateToken(ctx context.Context, token string) error {
 	_, err := q.db.Exec(ctx, insertStateToken, token)
 	return err
+}
+
+const upsertIdentity = `-- name: UpsertIdentity :one
+insert into demo.identity (user_id, identity_provider_id, external_id)
+values ($1, $2, $3)
+on conflict (user_id, identity_provider_id, external_id)
+do update set user_id = excluded.user_id
+returning id, identity_provider_id, user_id, external_id, created_at, updated_at
+`
+
+type UpsertIdentityParams struct {
+	UserID             pgtype.UUID
+	IdentityProviderID string
+	ExternalID         string
+}
+
+func (q *Queries) UpsertIdentity(ctx context.Context, arg UpsertIdentityParams) (DemoIdentity, error) {
+	row := q.db.QueryRow(ctx, upsertIdentity, arg.UserID, arg.IdentityProviderID, arg.ExternalID)
+	var i DemoIdentity
+	err := row.Scan(
+		&i.ID,
+		&i.IdentityProviderID,
+		&i.UserID,
+		&i.ExternalID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertUserByEmail = `-- name: UpsertUserByEmail :one
+insert into demo."user" (email)
+values ($1)
+on conflict (email) do update set email = excluded.email
+returning id, email, created_at, updated_at
+`
+
+func (q *Queries) UpsertUserByEmail(ctx context.Context, email string) (DemoUser, error) {
+	row := q.db.QueryRow(ctx, upsertUserByEmail, email)
+	var i DemoUser
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

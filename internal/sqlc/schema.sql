@@ -35,3 +35,9 @@ CREATE TABLE demo.state_token (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
+
+CREATE TABLE demo.nonce (
+    nonce text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);

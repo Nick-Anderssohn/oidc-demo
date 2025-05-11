@@ -23,6 +23,12 @@ type DemoIdentityProvider struct {
 	UpdatedAt pgtype.Timestamp
 }
 
+type DemoNonce struct {
+	Nonce     string
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 type DemoStateToken struct {
 	Token     string
 	CreatedAt pgtype.Timestamptz

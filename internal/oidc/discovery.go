@@ -89,7 +89,7 @@ func GetDiscoveryData(url string) (*DiscoveryData, error) {
 
 	// Couldn't find it in the cache, so we need to fetch it
 
-	discoveryDataResp, err := HttpClient.Get(url)
+	discoveryDataResp, err := HTTPClient.Get(url)
 	if err != nil {
 		return nil, err
 	}

@@ -63,6 +63,8 @@ db_reset() {
 
     db_migrate
 
+    db_dump_schema
+
     echo "DB reset complete"
 }
 

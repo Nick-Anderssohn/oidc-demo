@@ -16,6 +16,11 @@ services:
     container_name: api
     environment:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
     ports:
       - "8080:8080"
     depends_on:

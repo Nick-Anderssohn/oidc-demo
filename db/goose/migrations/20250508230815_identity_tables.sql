@@ -21,7 +21,10 @@ create table demo.identity (
     external_id text not null,
     created_at timestamp default now(),
     updated_at timestamp default now(),
-    unique (identity_provider_id, external_id)
+    unique (identity_provider_id, external_id),
+
+    -- for upserts:
+    unique (user_id, identity_provider_id, external_id)
 );
 
 create trigger identity_set_updated_at

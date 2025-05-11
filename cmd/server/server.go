@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 
-	"github.com/Nick-Anderssohn/oidc-demo/cmd/server/internal/http/handlers/google"
+	"github.com/Nick-Anderssohn/oidc-demo/cmd/server/internal/http/handlers/googleauth"
 	"github.com/Nick-Anderssohn/oidc-demo/internal/deps"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -56,19 +55,17 @@ func contentTypeJsonMiddleware(next http.Handler) http.Handler {
 }
 
 func registerAuthEndpoints(router *chi.Mux, resolver *deps.Resolver) {
-	googleHandlers := google.Handlers{
+	googleHandlers := googleauth.Handlers{
 		DepResolver: resolver,
 	}
 
-	// Login redirects
+	// Endpoints that handle redirecting to the authorization server
 	router.Route("/login", func(r chi.Router) {
 		r.Get("/google", googleHandlers.RedirectToAuthorizationServer)
 	})
 
+	// Endpoints that handle the callback from the authorization server
 	router.Route("/callbacks", func(r chi.Router) {
-		r.Get("/google", func(w http.ResponseWriter, r *http.Request) {
-			// Handle Google callback here
-			json.NewEncoder(w).Encode(Message{Text: "Google callback received!"})
-		})
+		r.Get("/google", googleHandlers.HandleCallback)
 	})
 }
