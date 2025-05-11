@@ -122,3 +122,23 @@ func (s *Service) SaveNewSessionCookie(ctx context.Context, userID pgtype.UUID, 
 
 	return nil
 }
+
+func (s *Service) Logout(ctx context.Context, w http.ResponseWriter) error {
+	sessionID, ok := ctx.Value(sessionContextKey).(string)
+	if !ok || sessionID == "" {
+		return nil
+	}
+
+	// Delete the session from the database
+	err := s.Resolver.Queries.DeleteSession(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:   sessionCookieName,
+		MaxAge: -1, // Delete the cookie
+	})
+
+	return nil
+}

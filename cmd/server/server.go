@@ -38,17 +38,18 @@ func main() {
 	// Serve static files
 	router.Handle("/*", http.FileServer(http.Dir("./static")))
 
-	registerAuthEndpoints(router, &resolver)
+	apiHandlers := api.Handlers{
+		DepResolver: &resolver,
+	}
+
+	registerAuthEndpoints(router, &apiHandlers)
 
 	// Routes under /private/api require the user to be authenticated
 	router.Route("/private/api", func(r chi.Router) {
 		r.Use(sessionSVC.RequireSessionMiddleware)
 		r.Use(contentTypeJsonMiddleware)
 
-		handlers := api.Handlers{
-			DepResolver: &resolver,
-		}
-		r.Get("/me", handlers.Me)
+		r.Get("/me", apiHandlers.Me)
 	})
 
 	log.Println("Server is running on http://localhost:8080")
@@ -64,9 +65,9 @@ func contentTypeJsonMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func registerAuthEndpoints(router *chi.Mux, resolver *deps.Resolver) {
+func registerAuthEndpoints(router *chi.Mux, apiHandlers *api.Handlers) {
 	googleHandlers := googleauth.Handlers{
-		DepResolver: resolver,
+		DepResolver: apiHandlers.DepResolver,
 	}
 
 	// Endpoints that handle redirecting to the authorization server
@@ -78,4 +79,7 @@ func registerAuthEndpoints(router *chi.Mux, resolver *deps.Resolver) {
 	router.Route("/callbacks", func(r chi.Router) {
 		r.Get("/google", googleHandlers.HandleCallback)
 	})
+
+	// Endpoints that handle logging out
+	router.Get("/logout", apiHandlers.Logout)
 }

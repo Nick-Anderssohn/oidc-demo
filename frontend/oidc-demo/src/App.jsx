@@ -51,6 +51,13 @@ function App() {
             />
           </div>
         )}
+        <div style={{ marginTop: '20px' }}>
+          {loggedIn && (
+          <button onClick={() => window.location.href = '/logout'}>
+            Logout
+          </button>
+          )}
+        </div>
       </div>
     </>
   )

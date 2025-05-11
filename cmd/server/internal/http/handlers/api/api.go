@@ -36,3 +36,18 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
+	sessionSVC := session.Service{
+		Resolver: h.DepResolver,
+	}
+
+	err := sessionSVC.Logout(r.Context(), w)
+	if err != nil {
+		log.Printf("Failed to logout: %v", err)
+		http.Error(w, "Failed to logout", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
