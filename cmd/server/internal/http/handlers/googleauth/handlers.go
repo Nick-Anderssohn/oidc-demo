@@ -22,6 +22,20 @@ func (h *Handlers) RedirectToAuthorizationServer(w http.ResponseWriter, r *http.
 	)
 }
 
+func (h *Handlers) HandleCallback(w http.ResponseWriter, r *http.Request) {
+	config := createGoogleOIDCConfig(h.DepResolver)
+
+	helpers.HandleOIDCCallback(
+		h.DepResolver,
+		&config,
+		w,
+		r,
+	)
+
+	// Redirect back to home page.
+	http.Redirect(w, r, h.DepResolver.Config.APIConfig.BaseURL+"/", http.StatusFound)
+}
+
 func createGoogleOIDCConfig(depResolver *deps.Resolver) helpers.OIDCConfig {
 	googleCfg := depResolver.Config.GoogleOIDCConfig
 

@@ -1,0 +1,184 @@
+package helpers
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/Nick-Anderssohn/oidc-demo/internal/deps"
+	"github.com/Nick-Anderssohn/oidc-demo/internal/oidc"
+	"github.com/Nick-Anderssohn/oidc-demo/internal/sqlc/dal"
+	"github.com/jackc/pgx/v5"
+	"golang.org/x/oauth2"
+)
+
+type OIDCConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	DiscoveryURL string
+	Scopes       []string
+}
+
+func RedirectToAuthorizationServer(
+	depResolver *deps.Resolver,
+	config *OIDCConfig,
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	oauthConfig, err := getOIDCConfig(config)
+
+	if err != nil {
+		http.Error(w, "Configuration error", http.StatusInternalServerError)
+		return
+	}
+
+	stateToken := generateStateToken()
+
+	err = depResolver.Queries.InsertStateToken(r.Context(), stateToken)
+	if err != nil {
+		log.Printf("Failed to insert state token: %v", err)
+		http.Error(w, "Failed to insert state token", http.StatusInternalServerError)
+		return
+	}
+
+	// We're just going to reuse the state token for the nonce too
+	// for this demo app. In a real app, you might want this to work
+	// differently depending on how/why you are using oauth2.
+	nonceOption := oauth2.SetAuthURLParam("nonce", stateToken)
+
+	authUrl := oauthConfig.AuthCodeURL(stateToken, nonceOption)
+
+	http.Redirect(w, r, authUrl, http.StatusFound)
+}
+
+func HandleOIDCCallback(
+	depResolver *deps.Resolver,
+	config *OIDCConfig,
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	err := validateState(depResolver, r)
+	if err != nil {
+		log.Printf("State validation failed: %v", err)
+		http.Error(w, "State validation failed", http.StatusBadRequest)
+		return
+	}
+
+	oidcConfig, err := getOIDCConfig(config)
+	if err != nil {
+		log.Printf("Failed to get OIDC config: %v", err)
+		http.Error(w, "Failed to get OIDC config", http.StatusInternalServerError)
+		return
+	}
+
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		log.Printf("Code parameter is missing")
+		http.Error(w, "Code parameter is missing", http.StatusBadRequest)
+		return
+	}
+
+	tokenResp, err := oidc.ExchangeCodeForToken(r.Context(), &oidcConfig, code)
+	if err != nil {
+		log.Printf("Failed to exchange code: %v", err)
+		http.Error(w, "Failed to exchange code", http.StatusInternalServerError)
+		return
+	}
+
+	err = upsertUserAndIdentity(depResolver, &tokenResp, r.Context())
+	if err != nil {
+		log.Printf("Failed to upsert user and identity: %v", err)
+		http.Error(w, "Failed to upsert user and identity", http.StatusInternalServerError)
+		return
+	}
+}
+
+func validateState(
+	depResolver *deps.Resolver,
+	r *http.Request,
+) error {
+	state := r.URL.Query().Get("state")
+
+	if state == "" {
+		return fmt.Errorf("state parameter is missing")
+	}
+
+	_, err := depResolver.Queries.GetStateToken(r.Context(), state)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return fmt.Errorf("invalid state token: %s", state)
+		} else {
+			return fmt.Errorf("failed to get state token: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func generateStateToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func getOIDCConfig(config *OIDCConfig) (oidc.Config, error) {
+	discoveryData, err := oidc.GetDiscoveryData(config.DiscoveryURL)
+	if err != nil {
+		return oidc.Config{}, err
+	}
+
+	return oidc.Config{
+		Config: &oauth2.Config{
+			ClientID:     config.ClientID,
+			ClientSecret: config.ClientSecret,
+
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  discoveryData.AuthorizationEndpoint,
+				TokenURL: discoveryData.TokenEndpoint,
+			},
+
+			RedirectURL: config.RedirectURL,
+			Scopes:      config.Scopes,
+		},
+		DiscoveryURL: config.DiscoveryURL,
+	}, nil
+}
+
+func upsertUserAndIdentity(
+	depResolver *deps.Resolver,
+	tokenResp *oidc.TokenResponse,
+	ctx context.Context,
+) error {
+	email, ok := tokenResp.IDTokenPayload["email"].(string)
+	if !ok || email == "" {
+		return fmt.Errorf("email not found in ID token payload")
+	}
+
+	externalId, ok := tokenResp.IDTokenPayload["sub"].(string)
+	if !ok || externalId == "" {
+		return fmt.Errorf("external ID not found in ID token payload")
+	}
+
+	// For now, we'll just upsert the user and identity.
+	queries := depResolver.Queries
+	user, err := queries.UpsertUserByEmail(ctx, tokenResp.IDTokenPayload["email"].(string))
+	if err != nil {
+		return fmt.Errorf("failed to upsert user: %v", err)
+	}
+
+	_, err = queries.UpsertIdentity(ctx, dal.UpsertIdentityParams{
+		UserID:             user.ID,
+		IdentityProviderID: dal.IdentityProviderIDGoogle,
+		ExternalID:         externalId,
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to upsert identity: %v", err)
+	}
+
+	return nil
+}
