@@ -38,7 +38,6 @@ function App() {
   return (
     <>
       <h1>OpenID Connect Demo</h1>
-      <p>Forgive the bad UI...I'm a backend dev</p>
       <div className="card">
         {loggedIn && <h2>Logged in! Link another account:</h2>}
         {!loggedIn && <h2>Not logged in! Please log in or create an account via:</h2>}
@@ -63,11 +62,6 @@ function App() {
                 </li>
               ))}
             </ul>
-            {/* <textarea
-              readOnly
-              style={{ width: '975px', height: '388px', fontFamily: 'monospace', fontSize: '1rem' }}
-              value={JSON.stringify(userData, null, 2)}
-            /> */}
           </div>
         )}
         <div style={{ marginTop: '20px' }}>

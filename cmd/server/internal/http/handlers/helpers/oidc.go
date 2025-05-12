@@ -2,8 +2,6 @@ package helpers
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +11,7 @@ import (
 	"github.com/Nick-Anderssohn/oidc-demo/internal/oidc"
 	"github.com/Nick-Anderssohn/oidc-demo/internal/session"
 	"github.com/Nick-Anderssohn/oidc-demo/internal/sqlc/dal"
+	"github.com/Nick-Anderssohn/oidc-demo/internal/util"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/oauth2"
 )
@@ -38,7 +37,11 @@ func RedirectToAuthorizationServer(
 		return
 	}
 
-	stateToken := generateStateToken()
+	stateToken, err := util.GenerateSecureID()
+	if err != nil {
+		log.Printf("could not generate state token")
+		http.Error(w, "Failed to generate state token", http.StatusInternalServerError)
+	}
 
 	err = depResolver.Queries.InsertStateToken(r.Context(), stateToken)
 	if err != nil {
@@ -91,6 +94,19 @@ func HandleOIDCCallback(
 		return
 	}
 
+	nonce, ok := tokenResp.IDTokenPayload["nonce"].(string)
+	if !ok || nonce == "" {
+		log.Println("missing nonce")
+		http.Error(w, "missing nonce", http.StatusInternalServerError)
+		return
+	}
+
+	if err = checkNonce(depResolver, r.Context(), nonce); err != nil {
+		log.Println("nonce already seen before! you trying a replay attack?!")
+		http.Error(w, "nonce already seen before! you trying a replay attack?!", http.StatusInternalServerError)
+		return
+	}
+
 	user, err := upsertUserAndIdentity(depResolver, &tokenResp, r.Context())
 	if err != nil {
 		log.Printf("Failed to upsert user and identity: %v", err)
@@ -130,10 +146,21 @@ func validateState(
 	return nil
 }
 
-func generateStateToken() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
+func checkNonce(depResolver *deps.Resolver, ctx context.Context, nonce string) error {
+	queries := depResolver.Queries
+
+	// We currently are using the state token to track what nonces we generated
+	_, err := queries.GetStateToken(ctx, nonce)
+	if err != nil {
+		return fmt.Errorf("invalid nonce")
+	}
+
+	err = depResolver.Queries.InsertNonce(ctx, nonce)
+	if err != nil {
+		return fmt.Errorf("nonce already seen. this could be a replay attack!")
+	}
+
+	return nil
 }
 
 func getOIDCConfig(config *OIDCConfig) (oidc.Config, error) {
