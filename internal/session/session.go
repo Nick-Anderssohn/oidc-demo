@@ -43,6 +43,7 @@ func (s *Service) SessionMiddleware(next http.Handler) http.Handler {
 				Name:   sessionCookieName,
 				MaxAge: -1, // Delete the cookie
 			})
+			next.ServeHTTP(w, r)
 			return
 		}
 
