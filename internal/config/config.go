@@ -52,13 +52,15 @@ func LoadConfig() (Config, error) {
 		return Config{}, fmt.Errorf("error loading env file: %w", err)
 	}
 
+	baseURL := os.Getenv("OIDC_DEMO_API_BASE_URL")
 	port := os.Getenv("OIDC_DEMO_API_PORT")
 
+	log.Println("configured for base url: " + baseURL)
 	log.Println("configured for port " + port)
 
 	return Config{
 		APIConfig: APIConfig{
-			BaseURL: os.Getenv("OIDC_DEMO_API_BASE_URL"),
+			BaseURL: baseURL,
 			Port:    port,
 		},
 		PostgresConfig: PostgresConfig{
