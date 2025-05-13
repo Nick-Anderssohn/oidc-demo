@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -41,6 +42,8 @@ func LoadConfig() (Config, error) {
 		env = "development"
 	}
 
+	log.Println("environment: " + env)
+
 	// First, load environment-specific config,
 	// then load default (existing values loaded
 	// take precedence over the default values).
@@ -54,10 +57,14 @@ func LoadConfig() (Config, error) {
 		return Config{}, fmt.Errorf("error loading env file: %w", err)
 	}
 
+	port := os.Getenv("OIDC_DEMO_API_PORT")
+
+	log.Println("configured for port " + port)
+
 	return Config{
 		APIConfig: APIConfig{
 			BaseURL: os.Getenv("OIDC_DEMO_API_BASE_URL"),
-			Port:    os.Getenv("OIDC_DEMO_API_PORT"),
+			Port:    port,
 		},
 		PostgresConfig: PostgresConfig{
 			Host:     os.Getenv("POSTGRES_HOST"),
