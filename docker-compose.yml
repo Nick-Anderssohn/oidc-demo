@@ -15,14 +15,16 @@ services:
       dockerfile: api.Dockerfile
     container_name: api
     environment:
+      OIDC_DEMO_ENV: ${OIDC_DEMO_ENV}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       POSTGRES_USER: demo
-      POSTGRES_PASSWORD: demo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-demo}
       POSTGRES_DB: demo
     ports:
       - "8080:8080"
+      - "80:80"
     depends_on:
       - db
 
