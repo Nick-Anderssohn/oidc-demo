@@ -47,12 +47,7 @@ func LoadConfig() (Config, error) {
 	// First, load environment-specific config,
 	// then load default (existing values loaded
 	// take precedence over the default values).
-	err := godotenv.Load(fmt.Sprintf(".env.%s", env))
-	if err != nil {
-		return Config{}, fmt.Errorf("error loading env file: %w", err)
-	}
-
-	err = godotenv.Load(".env")
+	err := godotenv.Load(fmt.Sprintf(".env.%s", env), ".env")
 	if err != nil {
 		return Config{}, fmt.Errorf("error loading env file: %w", err)
 	}
