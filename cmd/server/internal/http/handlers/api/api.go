@@ -37,6 +37,27 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handlers) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	userID, err := session.UserIDFromContext(r.Context())
+	if err != nil {
+		log.Printf("Failed to get user ID from context: %v", err)
+		http.Error(w, "Failed to get user ID from context", http.StatusInternalServerError)
+		return
+	}
+
+	err = h.DepResolver.Queries.DeleteUser(r.Context(), userID)
+	if err != nil {
+		log.Printf("could not delete user %v", userID.String())
+		http.Error(w, "could not delete user", http.StatusInternalServerError)
+		return
+	}
+
+	sessionSVC := session.Service{}
+	sessionSVC.DeleteSessionCookie(w)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	sessionSVC := session.Service{
 		Resolver: h.DepResolver,

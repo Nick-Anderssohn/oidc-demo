@@ -67,9 +67,32 @@ function App() {
         )}
         <div style={{ marginTop: '20px' }}>
           {loggedIn && (
+            <>
           <button onClick={() => window.location.href = '/logout'}>
             Logout
           </button>
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch('/private/api/me', {
+                  method: 'DELETE',
+                  credentials: 'include',
+                });
+                if (response.ok) {
+                  setUserData(null);
+                  setLoggedIn(false);
+                } else {
+                  console.error('Failed to delete user');
+                }
+              } catch (error) {
+                console.error('Error deleting user:', error);
+              }
+            }}
+            style={{ marginLeft: '10px', backgroundColor: '#e74c3c', color: 'white' }}
+          >
+            Hard Delete My Account
+          </button>
+          </>
           )}
         </div>
       </div>

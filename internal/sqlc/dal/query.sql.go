@@ -31,6 +31,15 @@ func (q *Queries) DeleteStateToken(ctx context.Context, token string) error {
 	return err
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+delete from demo."user" where id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
+}
+
 const getSession = `-- name: GetSession :one
 select id, user_id, created_at, updated_at
 from demo.session

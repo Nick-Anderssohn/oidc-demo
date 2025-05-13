@@ -39,10 +39,7 @@ func (s *Service) SessionMiddleware(next http.Handler) http.Handler {
 		sessionRecord, err := s.Resolver.Queries.GetSession(r.Context(), cookie.Value)
 		if err != nil {
 			// If session is invalid, delete the cookie and continue
-			http.SetCookie(w, &http.Cookie{
-				Name:   sessionCookieName,
-				MaxAge: -1, // Delete the cookie
-			})
+			s.DeleteSessionCookie(w)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -146,10 +143,14 @@ func (s *Service) Logout(ctx context.Context, w http.ResponseWriter) error {
 		return err
 	}
 
+	s.DeleteSessionCookie(w)
+
+	return nil
+}
+
+func (s *Service) DeleteSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:   sessionCookieName,
 		MaxAge: -1, // Delete the cookie
 	})
-
-	return nil
 }

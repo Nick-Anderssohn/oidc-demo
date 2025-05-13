@@ -66,3 +66,6 @@ where exists (
           and i.identity_provider_id = $1
           and i.external_id = $2
 );
+
+-- name: DeleteUser :exec
+delete from demo."user" where id = $1;

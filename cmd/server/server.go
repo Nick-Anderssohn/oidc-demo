@@ -50,6 +50,7 @@ func main() {
 		r.Use(contentTypeJsonMiddleware)
 
 		r.Get("/me", apiHandlers.Me)
+		r.Delete("/me", apiHandlers.DeleteMe)
 	})
 
 	port := resolver.Config.APIConfig.Port
