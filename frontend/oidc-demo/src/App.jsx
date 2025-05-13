@@ -41,6 +41,7 @@ function App() {
       <div className="card">
         {loggedIn && <h2>Logged in! Link another account:</h2>}
         {!loggedIn && <h2>Not logged in! Please log in or create an account via:</h2>}
+        {!loggedIn && <p>Don't worry, you can hard delete your data from this database whenever you want.</p>}
         <button onClick={() => window.location.href = '/login/google'}>
             Google
         </button>
