@@ -44,13 +44,14 @@ function App() {
         <button onClick={() => window.location.href = '/login/google'}>
             Google
         </button>
+        <hr style={{ margin: '5px 0' }} />
         {userData && (
           <div className="user-info">
             <h2>User Info</h2>
             <div style={{ textAlign: 'left' }}>
               <p><strong>User Email:</strong> {userData.email}</p>
             </div>
-            <h2>Linked Accounts</h2>
+            <h3>Linked Accounts</h3>
             <ul>
               {slimmedIdentities.map((identity, idx) => (
                 <li key={idx}>
