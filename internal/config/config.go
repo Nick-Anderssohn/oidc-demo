@@ -15,6 +15,7 @@ type Config struct {
 
 type APIConfig struct {
 	BaseURL string
+	Port    string
 }
 
 type PostgresConfig struct {
@@ -56,6 +57,7 @@ func LoadConfig() (Config, error) {
 	return Config{
 		APIConfig: APIConfig{
 			BaseURL: os.Getenv("OIDC_DEMO_API_BASE_URL"),
+			Port:    os.Getenv("OIDC_DEMO_API_PORT"),
 		},
 		PostgresConfig: PostgresConfig{
 			Host:     os.Getenv("POSTGRES_HOST"),

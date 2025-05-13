@@ -52,8 +52,10 @@ func main() {
 		r.Get("/me", apiHandlers.Me)
 	})
 
-	log.Println("Server is running on http://localhost:8080")
-	if err := http.ListenAndServe(":8080", router); err != nil {
+	port := resolver.Config.APIConfig.Port
+
+	log.Println("Server is running on http://localhost:" + port)
+	if err := http.ListenAndServe(":"+port, router); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
