@@ -32,6 +32,7 @@ COPY --from=builder /app/cmd/server/static /static
 # Copy env files
 COPY --from=builder /app/cmd/server/.env ./.env
 COPY --from=builder /app/cmd/server/.env.development ./.env.development
+COPY --from=builder /app/cmd/server/.env.development ./.env.production
 
 # Expose the application port
 EXPOSE 8080
