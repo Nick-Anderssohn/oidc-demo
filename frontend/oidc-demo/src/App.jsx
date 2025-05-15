@@ -91,7 +91,7 @@ function App() {
             }}
             style={{ marginLeft: '10px', backgroundColor: '#e74c3c', color: 'white' }}
           >
-            Hard Delete My Account
+            Hard Delete My User Data
           </button>
           </>
           )}
